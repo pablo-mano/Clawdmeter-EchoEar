@@ -25,14 +25,12 @@ LV_FONT_DECLARE(font_mono_18);
 #define COL_RED       THEME_RED
 #define COL_BAR_BG    THEME_BAR_BG
 
-// ---- Layout constants for 360x360 circular display (ESP-VoCat v1.2) ----
-// Circle safe zone: at y the usable x range is [180-sqrt(180²-(180-y)²), ...]
-// TITLE_Y=35 → safe x=[73,287]; CONTENT_Y=82 gives ~12px clearance below title.
+// ---- Layout constants for 360x360 display — 75% of original 480x480 design ----
 #define SCR_W         360
 #define SCR_H         360
-#define MARGIN        15    // margin for circular display corners
-#define TITLE_Y       35
-#define CONTENT_Y     82
+#define MARGIN        15    // 20 × 0.75
+#define TITLE_Y       22    // 30 × 0.75
+#define CONTENT_Y     75    // 100 × 0.75
 #define CONTENT_W     (SCR_W - 2 * MARGIN)   // 330
 
 // ---- Usage screen widgets ----
@@ -265,7 +263,7 @@ static void init_usage_screen(lv_obj_t* scr) {
     lv_label_set_text(lbl_title, "Usage");
     lv_obj_set_style_text_font(lbl_title, &font_tiempos_34, 0);
     lv_obj_set_style_text_color(lbl_title, COL_TEXT, 0);
-    lv_obj_align(lbl_title, LV_ALIGN_TOP_MID, 0, TITLE_Y);
+    lv_obj_align(lbl_title, LV_ALIGN_TOP_MID, 12, TITLE_Y);
 
     make_usage_panel(usage_container, CONTENT_Y, "Current",
                      &lbl_session_pct, &lbl_session_label,
@@ -297,7 +295,7 @@ static void init_bluetooth_screen(lv_obj_t* scr) {
     lv_label_set_text(lbl_ble_title, "Bluetooth");
     lv_obj_set_style_text_font(lbl_ble_title, &font_tiempos_34, 0);
     lv_obj_set_style_text_color(lbl_ble_title, COL_TEXT, 0);
-    lv_obj_align(lbl_ble_title, LV_ALIGN_TOP_MID, 0, TITLE_Y);
+    lv_obj_align(lbl_ble_title, LV_ALIGN_TOP_MID, 12, TITLE_Y);
 
     // Info panel
     lv_obj_t* p_info = make_panel(ble_container, MARGIN, CONTENT_Y, CONTENT_W, 120);
@@ -394,17 +392,17 @@ void ui_init(void) {
         lv_obj_add_event_cb(splash_get_root(), global_click_cb, LV_EVENT_CLICKED, NULL);
     }
 
-    // Logo: hidden on round display — corners are clipped by the circle bezel.
-    // The 80×80 logo would sit at x=15 which is outside the safe zone at TITLE_Y.
+    // Logo — scaled to 75% of original 80×80 = 60×60 (192/256 = 0.75 in LVGL scale units)
     logo_img = lv_image_create(scr);
     lv_image_set_src(logo_img, &logo_dsc);
-    lv_obj_add_flag(logo_img, LV_OBJ_FLAG_HIDDEN);
+    lv_image_set_scale(logo_img, 192);
+    lv_obj_set_pos(logo_img, MARGIN, TITLE_Y - 7);
 
-    // Battery indicator — inset to stay within circle safe zone.
-    // At y=TITLE_Y=35: safe x ≤ 287. Place right edge at 285 → x = 285 - icon_w.
+    // Battery indicator — 75%-scaled position from original (SCR_W-48-20 → 297)
     battery_img = lv_image_create(scr);
     lv_image_set_src(battery_img, &battery_dscs[0]);
-    lv_obj_align(battery_img, LV_ALIGN_TOP_RIGHT, -75, TITLE_Y);
+    lv_image_set_scale(battery_img, 192);
+    lv_obj_align(battery_img, LV_ALIGN_TOP_RIGHT, -MARGIN, TITLE_Y);
 }
 
 void ui_update(const UsageData* data) {
