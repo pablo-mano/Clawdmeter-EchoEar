@@ -2,7 +2,6 @@
 
 #include <Arduino_GFX_Library.h>
 #include <TouchDrvCSTXXX.hpp>
-#include <SensorBMI270.hpp>
 #include <Wire.h>
 
 // ---- Display resolution ----
@@ -39,4 +38,3 @@
 extern Arduino_DataBus  *bus;
 extern Arduino_ST77916  *gfx;
 extern TouchDrvCSTXXX    touch;
-extern SensorBMI270      imu;

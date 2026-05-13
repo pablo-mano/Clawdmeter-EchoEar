@@ -26,7 +26,6 @@ Arduino_ST77916 *gfx = new Arduino_ST77916(
     bus, LCD_RESET, 0 /* rotation */,
     LCD_WIDTH, LCD_HEIGHT, 0, 0, 0, 0);
 TouchDrvCSTXXX touch;
-SensorBMI270   imu;
 
 static UsageData usage = {};
 

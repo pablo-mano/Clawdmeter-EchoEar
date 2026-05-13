@@ -55,8 +55,26 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-ffmpeg -y -f rawvideo -pixel_format rgb565le -video_size 480x480 \
-    -i "$TMPRAW" -update 1 -frames:v 1 "$OUTPUT" 2>/dev/null || true
+# Convert RGB565LE raw → PNG using Python/Pillow (no ffmpeg needed)
+python3 - "$TMPRAW" "$OUTPUT" << 'CONVEOF'
+import sys, struct
+from PIL import Image
+
+raw_path, out_path = sys.argv[1], sys.argv[2]
+data = open(raw_path, "rb").read()
+n = len(data) // 2
+side = int(n ** 0.5)
+pixels = []
+for i in range(n):
+    v = struct.unpack_from("<H", data, i * 2)[0]
+    r = ((v >> 11) & 0x1F) << 3
+    g = ((v >> 5)  & 0x3F) << 2
+    b = (v         & 0x1F) << 3
+    pixels.append((r, g, b))
+img = Image.new("RGB", (side, side))
+img.putdata(pixels)
+img.save(out_path)
+CONVEOF
 
 
 if [ -f "$OUTPUT" ]; then
