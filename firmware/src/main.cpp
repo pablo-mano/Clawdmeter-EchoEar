@@ -11,21 +11,22 @@
 #include "usage_rate.h"
 
 // Physical buttons (global, screen-independent):
-//   BTN_BACK   (GPIO 0)  — left,  send Space (Claude Code voice mode push-to-talk)
-//   BTN_FWD    (GPIO 18) — right, send Shift+Tab (Claude Code mode toggle)
-//   AXP PWR    (PMU)     — middle, cycle screens; on splash, cycle animations
+//   BTN_BACK   (GPIO 0) — BOOT button, send Space (Claude Code voice mode)
+//   BTN_FWD    (GPIO 6) — capacitive pad, send Shift+Tab (mode toggle)
+//   BTN_PWR    (GPIO 7) — capacitive pad, cycle screens / animations
+// GPIO18 is QSPI CLK on ESP-VoCat — cannot be used as a button.
 #define BTN_BACK 0
-#define BTN_FWD  18
+#define BTN_FWD  6
+#define BTN_PWR  7
 
 // ---- Hardware objects ----
 Arduino_DataBus *bus = new Arduino_ESP32QSPI(
     LCD_CS, LCD_SCLK, LCD_SDIO0, LCD_SDIO1, LCD_SDIO2, LCD_SDIO3);
-Arduino_CO5300 *gfx = new Arduino_CO5300(
+Arduino_ST77916 *gfx = new Arduino_ST77916(
     bus, LCD_RESET, 0 /* rotation */,
     LCD_WIDTH, LCD_HEIGHT, 0, 0, 0, 0);
-TouchDrvCST92xx touch;
-XPowersPMU pmu;
-SensorQMI8658 imu;
+TouchDrvCSTXXX touch;
+SensorBMI270   imu;
 
 static UsageData usage = {};
 
@@ -54,11 +55,16 @@ static void touch_read() {
     }
 }
 
+// ---- Backlight control (GPIO44, 5 kHz PWM) ----
+static void set_backlight(uint8_t level) {
+    analogWrite(LCD_BL, level);
+}
+
 // ---- LVGL draw buffers (PSRAM-backed, partial render) ----
 #define BUF_LINES 40
 static uint16_t *buf1 = nullptr;
 static uint16_t *buf2 = nullptr;
-// rot_buf for strip rotation — max size is 480×480 (full invalidation case)
+// rot_buf for strip rotation — max size is 360×360 (full invalidation case)
 // but typical partial strips are much smaller
 static uint16_t *rot_buf = nullptr;
 
@@ -73,7 +79,7 @@ static uint32_t my_tick(void) {
 static void rotate_strip(const uint16_t *src, int32_t w, int32_t h,
                          int32_t sx, int32_t sy, uint8_t r,
                          int32_t *dx, int32_t *dy, int32_t *dw, int32_t *dh) {
-    const int S = LCD_WIDTH;  // 480
+    const int S = LCD_WIDTH;  // 360
 
     switch (r) {
     case 1: { // 90° CW: (x,y) -> (S-1-y, x)
@@ -234,7 +240,8 @@ void setup() {
     // Init display
     gfx->begin();
     gfx->fillScreen(0x0000);
-    gfx->setBrightness(200);
+    analogWriteFrequency(LCD_BL, 5000);
+    set_backlight(200);
 
     // Init PMU
     power_init();
@@ -242,14 +249,14 @@ void setup() {
     // Init IMU (accelerometer for auto-rotation)
     imu_init();
 
-    // Init touch
+    // Init touch (CST816S, single-touch)
     touch.setPins(TP_RST, TP_INT);
-    if (!touch.begin(Wire, CST9220_ADDR, IIC_SDA, IIC_SCL)) {
+    if (!touch.begin(Wire, CST816S_ADDR, IIC_SDA, IIC_SCL)) {
         Serial.println("Touch init failed");
     } else {
         touch.setMaxCoordinates(LCD_WIDTH, LCD_HEIGHT);
-        touch.setSwapXY(true);
-        touch.setMirrorXY(true, false);
+        touch.setSwapXY(false);
+        touch.setMirrorXY(false, false);
         attachInterrupt(TP_INT, touch_isr, FALLING);
         Serial.println("Touch init OK");
     }
@@ -281,9 +288,10 @@ void setup() {
     // Init BLE data channel
     ble_init();
 
-    // Physical buttons: back (GPIO 0) and forward (GPIO 18)
+    // Physical buttons: BOOT (GPIO0), capacitive pads (GPIO6, GPIO7)
     pinMode(BTN_BACK, INPUT_PULLUP);
     pinMode(BTN_FWD,  INPUT_PULLUP);
+    pinMode(BTN_PWR,  INPUT_PULLUP);
 
     // Build dashboard
     ui_init();
@@ -312,7 +320,7 @@ static void handle_rotation_change(void) {
 
     uint8_t rot = imu_get_rotation();
     if (rot != last_rotation) {
-        gfx->setBrightness(0);
+        set_backlight(0);
         last_rotation = rot;
         lv_obj_invalidate(lv_screen_active());
         ramp_step = 1;
@@ -325,7 +333,7 @@ static void handle_rotation_change(void) {
     ramp_last = now;
 
     static const uint8_t levels[] = {60, 120, 170, 200};
-    gfx->setBrightness(levels[ramp_step - 1]);
+    set_backlight(levels[ramp_step - 1]);
     if (ramp_step >= 4) ramp_step = 0;
     else                ramp_step++;
 }
@@ -340,13 +348,14 @@ void loop() {
     splash_tick();
 
     // Three-button input (global, screen-independent):
-    //   LEFT  (GPIO 0)  → Space (voice-mode push-to-talk; press & release tracked)
-    //   RIGHT (GPIO 18) → Shift+Tab (Claude Code mode toggle)
-    //   PWR   (AXP)     → cycle screens; on splash, cycle animations
+    //   BACK  (GPIO 0) — BOOT button, Space (voice-mode push-to-talk)
+    //   FWD   (GPIO 6) — capacitive pad, Shift+Tab (mode toggle)
+    //   PWR   (GPIO 7) — capacitive pad, cycle screens / animations
     {
-        static bool back_was = false, fwd_was = false;
+        static bool back_was = false, fwd_was = false, pwr_was = false;
         bool back_now = (digitalRead(BTN_BACK) == LOW);
         bool fwd_now  = (digitalRead(BTN_FWD)  == LOW);
+        bool pwr_now  = (digitalRead(BTN_PWR)  == LOW);
 
         if (back_now != back_was) {
             if (back_now) ble_keyboard_press(0x2C, 0);  // HID Space, no mods
@@ -358,6 +367,10 @@ void loop() {
             else         ble_keyboard_release();
             fwd_was = fwd_now;
         }
+        if (pwr_now && !pwr_was) {
+            power_set_pwr_pressed();
+        }
+        pwr_was = pwr_now;
 
         if (power_pwr_pressed()) {
             if (ui_get_current_screen() == SCREEN_SPLASH) splash_next();

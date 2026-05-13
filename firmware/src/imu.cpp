@@ -7,11 +7,11 @@
 #define STABLE_TIME_MS    300    // orientation must be stable this long before rotating
 #define TILT_THRESHOLD    0.5f   // ~30 degrees from axis (sin(30) ~ 0.5)
 
-static uint8_t  current_rotation = 0;
+static uint8_t  current_rotation   = 0;
 static uint8_t  candidate_rotation = 0;
-static uint32_t candidate_since = 0;
-static uint32_t last_poll_ms = 0;
-static bool     imu_ok = false;
+static uint32_t candidate_since    = 0;
+static uint32_t last_poll_ms       = 0;
+static bool     imu_ok             = false;
 
 // Determine target rotation from accelerometer gravity vector.
 // Returns 0-3 or 255 if ambiguous (e.g. face-up/face-down).
@@ -31,16 +31,17 @@ static uint8_t accel_to_rotation(float ax, float ay) {
 }
 
 void imu_init(void) {
-    if (!imu.begin(Wire, QMI8658_L_SLAVE_ADDRESS, IIC_SDA, IIC_SCL)) {
-        Serial.println("QMI8658 init failed");
+    if (!imu.begin(Wire, BMI270_ADDR, IIC_SDA, IIC_SCL)) {
+        Serial.println("BMI270 init failed");
         return;
     }
-    Serial.println("QMI8658 init OK");
+    Serial.println("BMI270 init OK");
 
+    // BMI270 uploads config firmware during begin() (~200ms, SensorLib blocks).
     imu.configAccelerometer(
-        SensorQMI8658::ACC_RANGE_4G,
-        SensorQMI8658::ACC_ODR_LOWPOWER_21Hz,
-        SensorQMI8658::LPF_MODE_3);
+        SensorBMI270::ACC_RANGE_4G,
+        SensorBMI270::ACC_ODR_25HZ,
+        SensorBMI270::ACC_BW_NORMAL);
     imu.enableAccelerometer();
 
     imu_ok = true;
