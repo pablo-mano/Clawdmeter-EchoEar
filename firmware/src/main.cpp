@@ -22,9 +22,13 @@
 // ---- Hardware objects ----
 Arduino_DataBus *bus = new Arduino_ESP32QSPI(
     LCD_CS, LCD_SCLK, LCD_SDIO0, LCD_SDIO1, LCD_SDIO2, LCD_SDIO3);
+// RST handled manually in setup() — pass GFX_NOT_DEFINED so tftInit uses SWRESET.
+// ESP-VoCat RST is active-HIGH; Arduino_GFX assumes active-LOW and leaves RST=HIGH
+// after its own reset sequence, which would hold the display in reset.
 Arduino_ST77916 *gfx = new Arduino_ST77916(
-    bus, LCD_RESET, 0 /* rotation */,
-    LCD_WIDTH, LCD_HEIGHT, 0, 0, 0, 0);
+    bus, GFX_NOT_DEFINED /* rst handled manually */, 0 /* rotation */,
+    false /* ips */, LCD_WIDTH, LCD_HEIGHT, 0, 0, 0, 0,
+    st77916_150_init_operations, sizeof(st77916_150_init_operations));
 TouchDrvCSTXXX touch;
 
 static UsageData usage = {};
@@ -236,11 +240,30 @@ void setup() {
     // Init I2C (shared by touch + PMU)
     Wire.begin(IIC_SDA, IIC_SCL);
 
-    // Init display
+    // LCD_EN (GPIO9) is active LOW on ESP-VoCat — LOW enables the display power rail
+    pinMode(LCD_EN, OUTPUT);
+    digitalWrite(LCD_EN, LOW);
+    delay(50);
+    Serial.println("LCD_EN LOW (active-low enable)");
+
+    // RST (GPIO47) is active HIGH on ESP-VoCat (reset_active_high=1 in BSP).
+    // Arduino_GFX assumes active-LOW and ends tftInit with RST=HIGH = display stuck in reset.
+    // Fix: do manual RST here, then pass GFX_NOT_DEFINED so tftInit uses software SWRESET.
+    pinMode(LCD_RESET, OUTPUT);
+    digitalWrite(LCD_RESET, HIGH);  // assert reset (active HIGH)
+    delay(100);
+    digitalWrite(LCD_RESET, LOW);   // release reset — display starts booting
+    delay(120);
+    Serial.println("RST: HIGH->LOW (active-high reset released)");
+
+    // Init display — RST=GFX_NOT_DEFINED so tftInit uses SWRESET instead of touching GPIO47
     gfx->begin();
+    gfx->invertDisplay(true);   // ESP-VoCat panel needs color inversion (BSP: invert_color=true)
     gfx->fillScreen(0x0000);
-    analogWriteFrequency(LCD_BL, 5000);
-    set_backlight(200);
+
+    // Backlight on
+    pinMode(LCD_BL, OUTPUT);
+    digitalWrite(LCD_BL, HIGH);
 
     // Init PMU
     power_init();

@@ -20,6 +20,7 @@
 #define LCD_SDIO3   12
 #define LCD_RESET   47
 #define LCD_BL      44   // backlight PWM (5 kHz via analogWrite)
+#define LCD_EN       9   // power-rail enable for display (active HIGH)
 
 // ---- Touch (CST816S via shared I2C) ----
 #define IIC_SDA      2
