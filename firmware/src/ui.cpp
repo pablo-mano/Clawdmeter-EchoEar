@@ -11,6 +11,7 @@ LV_FONT_DECLARE(font_styrene_28);
 LV_FONT_DECLARE(font_styrene_20);
 LV_FONT_DECLARE(font_styrene_16);
 LV_FONT_DECLARE(font_styrene_14);
+LV_FONT_DECLARE(font_styrene_12);
 LV_FONT_DECLARE(font_mono_18);
 
 // Anthropic brand palette — design tokens live in theme.h
@@ -25,13 +26,15 @@ LV_FONT_DECLARE(font_mono_18);
 #define COL_RED       THEME_RED
 #define COL_BAR_BG    THEME_BAR_BG
 
-// ---- Layout constants for 360x360 display — 75% of original 480x480 design ----
+// ---- Layout constants: 75% of previous layout, centered in 360×360 circle ----
+// MARGIN=55 → CONTENT_W=250. At y=58 the circle safe-x=[48,312] → 250px fits.
+// Vertical: title@58, panels@100..268, spinner@~345 — center ≈ y=180 ✓
 #define SCR_W         360
 #define SCR_H         360
-#define MARGIN        15    // 20 × 0.75
-#define TITLE_Y       22    // 30 × 0.75
-#define CONTENT_Y     75    // 100 × 0.75
-#define CONTENT_W     (SCR_W - 2 * MARGIN)   // 330
+#define MARGIN        55    // wide margin centers 250px content in circle
+#define TITLE_Y       58    // shifted down vs 22 to vertically center content
+#define CONTENT_Y     100   // 75 × 0.75 + offset
+#define CONTENT_W     (SCR_W - 2 * MARGIN)   // 250
 
 // ---- Usage screen widgets ----
 static lv_obj_t* usage_container;
@@ -197,15 +200,15 @@ static void init_icon_dsc_rgb565a8(lv_image_dsc_t* dsc, int w, int h, const uint
 static lv_obj_t* make_pill(lv_obj_t* parent, const char* text) {
     lv_obj_t* lbl = lv_label_create(parent);
     lv_label_set_text(lbl, text);
-    lv_obj_set_style_text_font(lbl, &font_styrene_20, 0);
+    lv_obj_set_style_text_font(lbl, &font_styrene_14, 0);
     lv_obj_set_style_text_color(lbl, COL_TEXT, 0);
     lv_obj_set_style_bg_color(lbl, COL_BAR_BG, 0);
     lv_obj_set_style_bg_opa(lbl, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(lbl, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_pad_left(lbl, 13, 0);
-    lv_obj_set_style_pad_right(lbl, 13, 0);
-    lv_obj_set_style_pad_top(lbl, 4, 0);
-    lv_obj_set_style_pad_bottom(lbl, 4, 0);
+    lv_obj_set_style_pad_left(lbl, 10, 0);
+    lv_obj_set_style_pad_right(lbl, 10, 0);
+    lv_obj_set_style_pad_top(lbl, 3, 0);
+    lv_obj_set_style_pad_bottom(lbl, 3, 0);
     return lbl;
 }
 
@@ -218,10 +221,10 @@ static void init_battery_icons(void) {
     init_icon_dsc_rgb565a8(&battery_dscs[4], ICON_BATTERY_CHARGING_W, ICON_BATTERY_CHARGING_H, icon_battery_charging_data);
 }
 
-// ======== Usage Screen (360x360) ========
+// ======== Usage Screen — 75% smaller, centered ========
 
-#define PANEL_H     112
-#define PANEL_GAP   12
+#define PANEL_H     84    // 112 × 0.75
+#define PANEL_GAP   9     // 12  × 0.75
 
 // One Session/Weekly panel: big % label, pill on the right, bar, reset label.
 // Pill y=1: symmetric inside the panel — panel-outer-top → pill-top equals
@@ -233,20 +236,20 @@ static void make_usage_panel(lv_obj_t* parent, int y, const char* pill_text,
 
     *out_pct = lv_label_create(panel);
     lv_label_set_text(*out_pct, "---%");
-    lv_obj_set_style_text_font(*out_pct, &font_styrene_28, 0);
+    lv_obj_set_style_text_font(*out_pct, &font_styrene_20, 0);
     lv_obj_set_style_text_color(*out_pct, COL_TEXT, 0);
     lv_obj_set_pos(*out_pct, 0, 0);
 
     *out_pill = make_pill(panel, pill_text);
     lv_obj_align(*out_pill, LV_ALIGN_TOP_RIGHT, 0, 1);
 
-    *out_bar = make_bar(panel, 0, 42, CONTENT_W - 24, 18);
+    *out_bar = make_bar(panel, 0, 32, CONTENT_W - 18, 14);
 
     *out_reset = lv_label_create(panel);
     lv_label_set_text(*out_reset, "---");
-    lv_obj_set_style_text_font(*out_reset, &font_styrene_20, 0);
+    lv_obj_set_style_text_font(*out_reset, &font_styrene_14, 0);
     lv_obj_set_style_text_color(*out_reset, COL_DIM, 0);
-    lv_obj_set_pos(*out_reset, 0, 70);
+    lv_obj_set_pos(*out_reset, 0, 53);
 }
 
 static void init_usage_screen(lv_obj_t* scr) {
@@ -276,7 +279,7 @@ static void init_usage_screen(lv_obj_t* scr) {
     lv_label_set_text(lbl_anim, "");
     lv_obj_set_style_text_font(lbl_anim, &font_mono_18, 0);
     lv_obj_set_style_text_color(lbl_anim, COL_ACCENT, 0);
-    lv_obj_align(lbl_anim, LV_ALIGN_BOTTOM_MID, 0, -12);
+    lv_obj_align(lbl_anim, LV_ALIGN_BOTTOM_MID, 0, -9);
 }
 
 // ======== Bluetooth Screen (360x360) ========
@@ -298,7 +301,7 @@ static void init_bluetooth_screen(lv_obj_t* scr) {
     lv_obj_align(lbl_ble_title, LV_ALIGN_TOP_MID, 12, TITLE_Y);
 
     // Info panel
-    lv_obj_t* p_info = make_panel(ble_container, MARGIN, CONTENT_Y, CONTENT_W, 120);
+    lv_obj_t* p_info = make_panel(ble_container, MARGIN, CONTENT_Y, CONTENT_W, 90);
 
     // Bluetooth icon + status row
     static lv_image_dsc_t icon_bt_dsc;
@@ -310,27 +313,27 @@ static void init_bluetooth_screen(lv_obj_t* scr) {
 
     lbl_ble_status = lv_label_create(p_info);
     lv_label_set_text(lbl_ble_status, "Initializing...");
-    lv_obj_set_style_text_font(lbl_ble_status, &font_styrene_28, 0);
+    lv_obj_set_style_text_font(lbl_ble_status, &font_styrene_20, 0);
     lv_obj_set_style_text_color(lbl_ble_status, COL_DIM, 0);
-    lv_obj_set_pos(lbl_ble_status, 42, 2);
+    lv_obj_set_pos(lbl_ble_status, 32, 2);
 
     lbl_ble_device = lv_label_create(p_info);
     lv_label_set_text(lbl_ble_device, "Device: ---");
-    lv_obj_set_style_text_font(lbl_ble_device, &font_styrene_20, 0);
+    lv_obj_set_style_text_font(lbl_ble_device, &font_styrene_14, 0);
     lv_obj_set_style_text_color(lbl_ble_device, COL_DIM, 0);
-    lv_obj_set_pos(lbl_ble_device, 0, 48);
+    lv_obj_set_pos(lbl_ble_device, 0, 36);
 
     lbl_ble_mac = lv_label_create(p_info);
     lv_label_set_text(lbl_ble_mac, "Address: ---");
-    lv_obj_set_style_text_font(lbl_ble_mac, &font_styrene_20, 0);
+    lv_obj_set_style_text_font(lbl_ble_mac, &font_styrene_14, 0);
     lv_obj_set_style_text_color(lbl_ble_mac, COL_DIM, 0);
-    lv_obj_set_pos(lbl_ble_mac, 0, 75);
+    lv_obj_set_pos(lbl_ble_mac, 0, 56);
 
     // Reset Bluetooth tap zone with trash icon
-    int reset_y = CONTENT_Y + 120 + 12;
+    int reset_y = CONTENT_Y + 90 + 9;
     lv_obj_t* reset_zone = lv_obj_create(ble_container);
     lv_obj_set_pos(reset_zone, MARGIN, reset_y);
-    lv_obj_set_size(reset_zone, CONTENT_W, 82);
+    lv_obj_set_size(reset_zone, CONTENT_W, 62);
     lv_obj_set_style_bg_color(reset_zone, COL_PANEL, 0);
     lv_obj_set_style_bg_opa(reset_zone, LV_OPA_COVER, 0);
     lv_obj_set_style_radius(reset_zone, 8, 0);
@@ -348,21 +351,21 @@ static void init_bluetooth_screen(lv_obj_t* scr) {
 
     lv_obj_t* reset_lbl = lv_label_create(reset_zone);
     lv_label_set_text(reset_lbl, "Reset Bluetooth");
-    lv_obj_set_style_text_font(reset_lbl, &font_styrene_20, 0);
+    lv_obj_set_style_text_font(reset_lbl, &font_styrene_14, 0);
     lv_obj_set_style_text_color(reset_lbl, COL_DIM, 0);
 
     // Attribution
     lv_obj_t* lbl_credit = lv_label_create(ble_container);
     lv_label_set_text(lbl_credit, "Built by @hermannbjorgvin");
-    lv_obj_set_style_text_font(lbl_credit, &font_styrene_16, 0);
+    lv_obj_set_style_text_font(lbl_credit, &font_styrene_12, 0);
     lv_obj_set_style_text_color(lbl_credit, COL_DIM, 0);
-    lv_obj_align(lbl_credit, LV_ALIGN_BOTTOM_MID, 0, -34);
+    lv_obj_align(lbl_credit, LV_ALIGN_BOTTOM_MID, 0, -26);
 
     lv_obj_t* lbl_credit2 = lv_label_create(ble_container);
     lv_label_set_text(lbl_credit2, "Clawd animation by @amaanbuilds");
-    lv_obj_set_style_text_font(lbl_credit2, &font_styrene_14, 0);
+    lv_obj_set_style_text_font(lbl_credit2, &font_styrene_12, 0);
     lv_obj_set_style_text_color(lbl_credit2, COL_DIM, 0);
-    lv_obj_align(lbl_credit2, LV_ALIGN_BOTTOM_MID, 0, -15);
+    lv_obj_align(lbl_credit2, LV_ALIGN_BOTTOM_MID, 0, -11);
 
     // Start hidden
     lv_obj_add_flag(ble_container, LV_OBJ_FLAG_HIDDEN);
@@ -392,16 +395,17 @@ void ui_init(void) {
         lv_obj_add_event_cb(splash_get_root(), global_click_cb, LV_EVENT_CLICKED, NULL);
     }
 
-    // Logo — scaled to 75% of original 80×80 = 60×60 (192/256 = 0.75 in LVGL scale units)
+    // Logo — scaled to ~45px (144/256 ≈ 0.56 of 80px original = 45px)
+    // At TITLE_Y=58, MARGIN=55: x=55 is within circle safe zone (safe_min≈48) ✓
     logo_img = lv_image_create(scr);
     lv_image_set_src(logo_img, &logo_dsc);
-    lv_image_set_scale(logo_img, 192);
-    lv_obj_set_pos(logo_img, MARGIN, TITLE_Y - 7);
+    lv_image_set_scale(logo_img, 144);
+    lv_obj_set_pos(logo_img, MARGIN, TITLE_Y - 8);
 
-    // Battery indicator — 75%-scaled position from original (SCR_W-48-20 → 297)
+    // Battery — at TOP_RIGHT, -MARGIN keeps it within circle safe zone at TITLE_Y=58
     battery_img = lv_image_create(scr);
     lv_image_set_src(battery_img, &battery_dscs[0]);
-    lv_image_set_scale(battery_img, 192);
+    lv_image_set_scale(battery_img, 144);
     lv_obj_align(battery_img, LV_ALIGN_TOP_RIGHT, -MARGIN, TITLE_Y);
 }
 
