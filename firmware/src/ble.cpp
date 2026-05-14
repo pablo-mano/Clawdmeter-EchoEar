@@ -70,13 +70,25 @@ static void start_advertising() {
 class ServerCallbacks : public NimBLEServerCallbacks {
     void onConnect(NimBLEServer* s, NimBLEConnInfo& info) override {
         state = BLE_STATE_CONNECTED;
-        Serial.printf("BLE: connected from %s\n", info.getAddress().toString().c_str());
+        Serial.printf("BLE: connected from %s (total: %d)\n",
+            info.getAddress().toString().c_str(), s->getConnectedCount());
+        // Resume advertising so a second client (daemon) can also connect
+        if (s->getConnectedCount() < 2) {
+            NimBLEDevice::getAdvertising()->start();
+            Serial.println("BLE: advertising resumed for second connection");
+        }
     }
 
     void onDisconnect(NimBLEServer* s, NimBLEConnInfo& info, int reason) override {
-        state = BLE_STATE_DISCONNECTED;
-        need_advertise = true;
-        Serial.printf("BLE: disconnected (reason=%d)\n", reason);
+        Serial.printf("BLE: disconnected (reason=%d, remaining: %d)\n",
+            reason, s->getConnectedCount());
+        if (s->getConnectedCount() == 0) {
+            state = BLE_STATE_DISCONNECTED;
+            need_advertise = true;
+        } else {
+            // Still have one connection — resume advertising for reconnect
+            NimBLEDevice::getAdvertising()->start();
+        }
     }
 
 };
