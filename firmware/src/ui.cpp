@@ -279,7 +279,7 @@ static void init_usage_screen(lv_obj_t* scr) {
     lv_label_set_text(lbl_anim, "");
     lv_obj_set_style_text_font(lbl_anim, &font_mono_18, 0);
     lv_obj_set_style_text_color(lbl_anim, COL_ACCENT, 0);
-    lv_obj_align(lbl_anim, LV_ALIGN_BOTTOM_MID, 0, -9);
+    lv_obj_align(lbl_anim, LV_ALIGN_BOTTOM_MID, 0, -14);
 }
 
 // ======== Bluetooth Screen (360x360) ========
@@ -400,13 +400,13 @@ void ui_init(void) {
     logo_img = lv_image_create(scr);
     lv_image_set_src(logo_img, &logo_dsc);
     lv_image_set_scale(logo_img, 144);
-    lv_obj_set_pos(logo_img, MARGIN, TITLE_Y - 8);
+    lv_obj_set_pos(logo_img, MARGIN, TITLE_Y - 13);
 
     // Battery — at TOP_RIGHT, -MARGIN keeps it within circle safe zone at TITLE_Y=58
     battery_img = lv_image_create(scr);
     lv_image_set_src(battery_img, &battery_dscs[0]);
     lv_image_set_scale(battery_img, 144);
-    lv_obj_align(battery_img, LV_ALIGN_TOP_RIGHT, -MARGIN, TITLE_Y);
+    lv_obj_align(battery_img, LV_ALIGN_TOP_RIGHT, -MARGIN, TITLE_Y - 2);
 }
 
 void ui_update(const UsageData* data) {
