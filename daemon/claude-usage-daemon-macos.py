@@ -210,6 +210,11 @@ async def run_session(client: BleakClient, token: str) -> None:
         now = time.monotonic()
         if (now - last_poll >= POLL_INTERVAL) or refresh_requested:
             refresh_requested = False
+            # Re-read token from Keychain on every poll — Claude Code refreshes it periodically
+            try:
+                token = read_token()
+            except Exception as e:
+                log(f"Token refresh failed: {e}")
             log("Polling Anthropic API...")
             data = poll(token)
             if data:
