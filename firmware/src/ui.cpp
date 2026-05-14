@@ -243,7 +243,7 @@ static void make_usage_panel(lv_obj_t* parent, int y, const char* pill_text,
     *out_pill = make_pill(panel, pill_text);
     lv_obj_align(*out_pill, LV_ALIGN_TOP_RIGHT, 0, 1);
 
-    *out_bar = make_bar(panel, 0, 32, CONTENT_W - 18, 14);
+    *out_bar = make_bar(panel, 0, 32, CONTENT_W - 33, 14);
 
     *out_reset = lv_label_create(panel);
     lv_label_set_text(*out_reset, "---");
@@ -279,7 +279,7 @@ static void init_usage_screen(lv_obj_t* scr) {
     lv_label_set_text(lbl_anim, "");
     lv_obj_set_style_text_font(lbl_anim, &font_mono_18, 0);
     lv_obj_set_style_text_color(lbl_anim, COL_ACCENT, 0);
-    lv_obj_align(lbl_anim, LV_ALIGN_BOTTOM_MID, 0, -14);
+    lv_obj_align(lbl_anim, LV_ALIGN_BOTTOM_MID, 0, -34);
 }
 
 // ======== Bluetooth Screen (360x360) ========
@@ -400,13 +400,13 @@ void ui_init(void) {
     logo_img = lv_image_create(scr);
     lv_image_set_src(logo_img, &logo_dsc);
     lv_image_set_scale(logo_img, 144);
-    lv_obj_set_pos(logo_img, MARGIN, TITLE_Y - 13);
+    lv_obj_set_pos(logo_img, MARGIN, TITLE_Y - 23);
 
     // Battery — at TOP_RIGHT, -MARGIN keeps it within circle safe zone at TITLE_Y=58
     battery_img = lv_image_create(scr);
     lv_image_set_src(battery_img, &battery_dscs[0]);
     lv_image_set_scale(battery_img, 144);
-    lv_obj_align(battery_img, LV_ALIGN_TOP_RIGHT, -MARGIN, TITLE_Y - 2);
+    lv_obj_align(battery_img, LV_ALIGN_TOP_RIGHT, -MARGIN, TITLE_Y - 5);
 }
 
 void ui_update(const UsageData* data) {
