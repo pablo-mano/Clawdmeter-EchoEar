@@ -230,7 +230,10 @@ async def run_session(client: BleakClient, token: str) -> None:
                     log(f"Write failed: {e}")
                     break
             else:
-                log("Poll failed — will retry")
+                # 401 usually means Claude Code is mid-refresh — wait 30s before retrying
+                log("Poll failed — waiting 30s (token may be refreshing)")
+                await asyncio.sleep(30)
+                last_poll = now  # reset so next tick triggers a fresh poll
 
         await asyncio.sleep(5)
 
